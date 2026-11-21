@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WorldLive - 旅する多言語学習アプリ</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* スクロールバー非表示（横スクロールタブ用） */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* アニメーション */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col max-w-2xl mx-auto bg-white shadow-xl border-x border-slate-100">
+
+  <!-- トースト通知（alertの代替） -->
+  <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium shadow-lg transition-all duration-300 flex items-center gap-2">
+    <i id="toast-icon" class="fa-solid fa-circle-info text-sky-400"></i>
+    <span id="toast-msg">メッセージ</span>
+  </div>
+
+  <!-- ヘッダー -->
+  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+        <i class="fa-solid fa-earth-americas"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base leading-tight text-slate-900">WorldLive</h1>
+        <p class="text-[11px] text-slate-500">現地を旅する6言語AI</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- 履歴ボタン -->
+      <button onclick="switchTab('history')" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition relative" title="学習履歴">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </button>
+      <!-- APIキー設定ボタン -->
+      <button onclick="openApiModal()" id="api-status-btn" class="px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 text-xs font-bold flex items-center gap-1.5 transition shadow-sm">
+        <i class="fa-solid fa-key"></i>
+        <span id="api-btn-text">API設定</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 6言語セレクター -->
+  <div class="bg-slate-50 border-b border-slate-200 px-3 py-2.5">
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar" id="lang-selector">
+      <!-- JSで6言語ボタンを生成 -->
+    </div>
+  </div>
+
+  <!-- メインコンテンツエリア -->
+  <main class="flex-1 p-4 pb-24 overflow-y-auto">
+
+    <!-- 1. 現地ロールプレイモード -->
+    <section id="tab-roleplay" class="space-y-4 animate-fade-in">
+      <!-- シチュエーション選択カード -->
+      <div class="bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-white px-2.5 py-1 rounded-full shadow-xs">
+            <i class="fa-solid fa-location-dot mr-1"></i>現地シチュエーション
+          </span>
+          <button onclick="startNewRoleplay()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-indigo-100 shadow-xs">
+            <i class="fa-solid fa-rotate"></i> シーン変更
+          </button>
+        </div>
+        <h2 id="rp-scene-title" class="font-bold text-slate-900 text-base">パリの街角カフェで朝ごはんを注文</h2>
+        <p id="rp-scene-desc" class="text-xs text-slate-600 mt-1">少し気さくな店員と会話しながら、クロワッサンとカフェオレを頼んでみましょう。</p>
+      </div>
+
+      <!-- チャットログ -->
+      <div id="rp-chat-box" class="space-y-3 min-h-[260px] max-h-[420px] overflow-y-auto p-1">
+        <!-- メッセージがここに追加される -->
+      </div>
+
+      <!-- 返信ヒントエリア -->
+      <div id="rp-hints-container" class="hidden bg-slate-50 rounded-xl p-3 border border-slate-200">
+        <p class="text-[11px] font-bold text-slate-500 mb-2"><i class="fa-regular fa-lightbulb text-amber-500 mr-1"></i>使える現地フレーズ（タップで入力）</p>
+        <div id="rp-hints" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <!-- 入力フォーム -->
+      <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+        <button onclick="toggleVoiceInput('rp-input')" id="rp-mic-btn" class="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition" title="音声で話す">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
+        <input id="rp-input" type="text" placeholder="現地語または日本語で返信..." class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white transition outline-none" onkeypress="if(event.key==='Enter') sendRoleplayMessage()">
+        <button onclick="sendRoleplayMessage()" id="rp-send-btn" class="p-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm transition flex items-center gap-1">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. カメラ・日常の瞬間学習モード -->
+    <section id="tab-camera" class="hidden space-y-4 animate-fade-in">
+      <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+        <h2 class="font-bold text-emerald-950 text-base flex items-center gap-2">
+          <i class="fa-solid fa-camera-retro text-emerald-600"></i>目の前の風景・食事を教材に
+        </h2>
+        <p class="text-xs text-emerald-800 mt-1">今食べているランチや部屋のアイテムを撮影・選択すると、現地での自然な表現とクイズを出題します。</p>
+      </div>
+
+      <!-- 画像アップロードエリア -->
+      <div class="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center bg-slate-50 hover:bg-slate-100/70 transition relative">
+        <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleImageUpload(event)">
+        <div id="camera-preview-box" class="hidden mb-4">
+          <img id="camera-preview" src="" alt="プレビュー" class="max-h-60 mx-auto rounded-xl shadow-md object-contain">
+        </div>
+        <div id="camera-placeholder" class="space-y-2 py-4">
+          <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <p class="text-sm font-semibold text-slate-700">カメラで撮る / 写真を選ぶ</p>
+          <p class="text-xs text-slate-400">食べ物・街並み・雑貨など何でもOK</p>
+        </div>
+        <button onclick="document.getElementById('camera-input').click()" class="mt-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition">
+          <i class="fa-solid fa-plus mr-1"></i>写真を選択・撮影
+        </button>
+      </div>
+
+      <!-- 解析結果＆クイズ表示エリア -->
+      <div id="camera-result" class="hidden space-y-3">
+        <!-- JSで生成 -->
+      </div>
+    </section>
+
+    <!-- 3. 6言語の文化・日常比較ストーリー -->
+    <section id="tab-compare" class="hidden space-y-4 animate-fade-in">
+      <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+        <h2 class="font-bold text-amber-950 text-base flex items-center gap-2">
+          <i class="fa-solid fa-globe text-amber-600"></i>6カ国のリアルな日常を聞き比べ
+        </h2>
+        <p class="text-xs text-amber-800 mt-1">同じテーマでも国によって暮らしや文化はまったく違います。6言語のストーリーを一括生成して音声で聞き比べましょう。</p>
+
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button onclick="generateComparison('朝のルーティンと朝食')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-200 text-amber-900 text-xs font-semibold hover:bg-amber-100 transition">☀️ 朝のルーティン</button>
+          <button onclick="generateComparison('金曜日の夜の過ごし方')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-200 text-amber-900 text-xs font-semibold hover:bg-amber-100 transition">🌙 金曜日の夜</button>
+          <button onclick="generateComparison('休日のカフェや市場での時間')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-200 text-amber-900 text-xs font-semibold hover:bg-amber-100 transition">☕ 休日の過ごし方</button>
+          <button onclick="generateComparison('仕事や学校終わりの寄り道')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-200 text-amber-900 text-xs font-semibold hover:bg-amber-100 transition">🚶 帰り道の寄り道</button>
+        </div>
+      </div>
+
+      <div id="compare-loading" class="hidden py-10 text-center space-y-2">
+        <i class="fa-solid fa-spinner fa-spin text-2xl text-amber-600"></i>
+        <p class="text-xs font-medium text-slate-600">6カ国の現地ストーリーを作成中...</p>
+      </div>
+
+      <div id="compare-list" class="space-y-3">
+        <!-- 6言語カードがここに並ぶ -->
+      </div>
+    </section>
+
+    <!-- 4. 単語帳＆発音練習モード -->
+    <section id="tab-vocab" class="hidden space-y-4 animate-fade-in">
+      <div class="bg-purple-50 border border-purple-100 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <h2 class="font-bold text-purple-950 text-base flex items-center gap-2">
+            <i class="fa-solid fa-spell-check text-purple-600"></i>マイ単語帳＆発音チェック
+          </h2>
+          <p class="text-xs text-purple-800 mt-0.5">お手本を聞いて、マイクで発音テストができます。</p>
+        </div>
+        <button onclick="generateSuggestedVocab()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition shrink-0">
+          <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>単語を追加
+        </button>
+      </div>
+
+      <!-- 手動単語追加フォーム -->
+      <div class="flex gap-2">
+        <input id="new-vocab-word" type="text" placeholder="現地語の単語・フレーズ" class="flex-1 bg-slate-100 rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500">
+        <input id="new-vocab-meaning" type="text" placeholder="日本語の意味" class="flex-1 bg-slate-100 rounded-xl px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500">
+        <button onclick="addManualVocab()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-700">登録</button>
+      </div>
+
+      <!-- 単語カード一覧 -->
+      <div id="vocab-list" class="space-y-2.5">
+        <!-- JSで生成 -->
+      </div>
+    </section>
+
+    <!-- 5. 学習履歴モード -->
+    <section id="tab-history" class="hidden space-y-4 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i>これまでの学習履歴
+        </h2>
+        <button onclick="clearHistory()" class="text-xs text-rose-600 hover:underline font-medium">履歴をクリア</button>
+      </div>
+      <div id="history-list" class="space-y-2.5">
+        <!-- 履歴アイテム -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ボトムナビゲーション（スマホ操作に最適化） -->
+  <nav class="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto bg-white border-t border-slate-200 px-2 py-1.5 flex justify-around items-center z-30">
+    <button onclick="switchTab('roleplay')" id="nav-roleplay" class="nav-btn flex flex-col items-center py-1.5 px-3 rounded-xl text-indigo-600 font-bold text-[11px] gap-1">
+      <i class="fa-solid fa-comments text-lg"></i>
+      <span>ロールプレイ</span>
+    </button>
+    <button onclick="switchTab('camera')" id="nav-camera" class="nav-btn flex flex-col items-center py-1.5 px-3 rounded-xl text-slate-400 font-medium text-[11px] gap-1">
+      <i class="fa-solid fa-camera text-lg"></i>
+      <span>カメラ学習</span>
+    </button>
+    <button onclick="switchTab('compare')" id="nav-compare" class="nav-btn flex flex-col items-center py-1.5 px-3 rounded-xl text-slate-400 font-medium text-[11px] gap-1">
+      <i class="fa-solid fa-earth-asia text-lg"></i>
+      <span>6言語比較</span>
+    </button>
+    <button onclick="switchTab('vocab')" id="nav-vocab" class="nav-btn flex flex-col items-center py-1.5 px-3 rounded-xl text-slate-400 font-medium text-[11px] gap-1">
+      <i class="fa-solid fa-book-bookmark text-lg"></i>
+      <span>単語・発音</span>
+    </button>
+  </nav>
+
+  <!-- Gemini APIキー設定モーダル -->
+  <div id="api-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+          <i class="fa-solid fa-key text-amber-500"></i>Gemini APIキー設定
+        </h3>
+        <button onclick="closeApiModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Google AI Studioで取得したGemini APIキーを入力してください。キーはお使いのブラウザ内（localStorage）にのみ安全に保存されます。
+      </p>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">APIキー (AIza...)</label>
+        <input id="api-key-input" type="password" placeholder="AIzaSy..." class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeApiModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">キャンセル</button>
+        <button onclick="saveApiKey()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. 言語マスターデータ（6言語）
+    // ==========================================
+    const LANGUAGES = [
+      {
+        id: 'fr',
+        name: 'フランス語',
+        native: 'Français',
+        flag: '🇫🇷',
+        speechCode: 'fr-FR',
+        city: 'パリ',
+        scenarios: [
+          { title: 'パリの街角カフェで朝ごはんを注文', desc: '少し気さくな店員と会話しながら、クロワッサンとカフェオレを頼みましょう。', starter: 'Bonjour ! Vous prenez votre petit-déjeuner ici ou à emporter ?', starterJa: 'こんにちは！朝食は店内でお召し上がりですか、それともお持ち帰りですか？' },
+          { title: 'マルシェ（朝市）でチーズと果物を買う', desc: '活気ある市場の店主におすすめを聞きながら買い物を楽しみます。', starter: 'Bonjour ! Goûtez mes fraises, elles sont sucrées aujourd’hui ! Vous voulez combien ?', starterJa: 'こんにちは！うちのイチゴ味見してみて、今日は甘いよ！どれくらい欲しい？' }
+        ]
+      },
+      {
+        id: 'it',
+        name: 'イタリア語',
+        native: 'Italiano',
+        flag: '🇮🇹',
+        speechCode: 'it-IT',
+        city: 'ローマ',
+        scenarios: [
+          { title: 'ローマのバールでエスプレッソとコルネット', desc: '朝の賑やかなカウンターで地元の人のように注文してみましょう。', starter: 'Buongiorno! Cosa ti preparo stamattina? Un bel caffè?', starterJa: 'おはよう！今朝は何にしようか？美味しいコーヒーにする？' },
+          { title: 'トラットリアで今日のおすすめパスタを聞く', desc: '陽気なカメリエーレ（店員）と相談してディナーを決めます。', starter: 'Benvenuti! Avete già dato un’occhiata al menù o vi consiglio io qualcosa di tipico?', starterJa: 'ようこそ！もうメニューは見た？それとも僕から郷土料理をおすすめしようか？' }
+        ]
+      },
+      {
+        id: 'zh',
+        name: '中国語',
+        native: '中文',
+        flag: '🇨🇳',
+        speechCode: 'zh-CN',
+        city: '上海・台北',
+        scenarios: [
+          { title: 'ローカル食堂で小籠包と麺を注文', desc: '活気ある店員さんとやり取りしながら名物料理を頼みましょう。', starter: '你好！几位？想吃点什么？我们家的现包小笼包特别好吃！', starterJa: 'こんにちは！何名様？何を食べたい？うちの手作り小籠包はすごく美味しいよ！' },
+          { title: '夜市でタピオカミルクティーをカスタマイズ', desc: '甘さや氷の量を伝えながらドリンクを注文します。', starter: '你好，要喝点什么？甜度和冰块需要怎么调整？', starterJa: 'こんにちは、何にする？甘さと氷の量はどう調整する？' }
+        ]
+      },
+      {
+        id: 'ko',
+        name: '韓国語',
+        native: '한국어',
+        flag: '🇰🇷',
+        speechCode: 'ko-KR',
+        city: 'ソウル',
+        scenarios: [
+          { title: 'ソウルの屋台でトッポッキとおでんを注文', desc: '優しい屋台のおばちゃん（イモ）と会話しながら食べ歩き！', starter: '어서 와요~ 뭐 줄까? 떡볶이 금방 나와서 아주 맛있어!', starterJa: 'いらっしゃい〜何あげようか？トッポッキ今できたばかりですごく美味しいよ！' },
+          { title: '聖水（ソンス）のおしゃれカフェで注文', desc: 'トレンドのカフェで店員さんとおすすめのデザートについて話します。', starter: '안녕하세요! 주문 도와드릴까요? 오늘 나온 크로플이 제일 잘 나가요.', starterJa: 'こんにちは！ご注文お伺いしましょうか？今日出たクロッフルが一番人気ですよ。' }
+        ]
+      },
+      {
+        id: 'es',
+        name: 'スペイン語',
+        native: 'Español',
+        flag: '🇪🇸',
+        speechCode: 'es-ES',
+        city: 'マドリード・バルセロナ',
+        scenarios: [
+          { title: 'バルセロナのバルでタパスと飲み物を注文', desc: '陽気な店員と会話しながら、カウンターに並ぶタパスを選びます。', starter: '¡Hola! ¿Qué tal? ¿Qué te pongo para tomar mientras miras las tapas?', starterJa: 'やあ！元気？タパスを見ている間に何か飲み物を用意しようか？' },
+          { title: '市場のチュロス屋さんで朝のおやつ', desc: '揚げたてのチュロスとホットチョコレートを注文してみましょう。', starter: '¡Buenos días! ¿Quieres unos churros recién hechos con chocolate caliente?', starterJa: 'おはよう！揚げたてのチュロスとホットチョコレートはいかが？' }
+        ]
+      },
+      {
+        id: 'en',
+        name: '英語',
+        native: 'English',
+        flag: '🇺🇸',
+        speechCode: 'en-US',
+        city: 'ニューヨーク・ロンドン',
+        scenarios: [
+          { title: 'ブルックリンのロースタリーカフェで注文', desc: 'フレンドリーなバリスタとスモールトークを交えつつコーヒーを頼みます。', starter: 'Hey there! How’s your morning going? What can I get started for you today?', starterJa: 'やあ！今朝の調子はどう？今日は何から作ろうか？' },
+          { title: 'フードトラックでランチのタコスを買う', desc: 'トッピングや辛さを選びながら注文してみましょう。', starter: 'What’s up! You trying our street tacos today? Mild or spicy salsa?', starterJa: '調子どう！今日はうちのストリートタコスにする？マイルドとスパイシーどっちのサルサ？' }
+        ]
+      }
+    ];
+
+    // ==========================================
+    // 2. アプリ状態管理 & 初期化
+    // ==========================================
+    let currentLang = LANGUAGES[0];
+    let currentScenarioIndex = 0;
+    let chatHistory = [];
+    let savedVocab = JSON.parse(localStorage.getItem('worldlive_vocab') || '[]');
+    let studyLogs = JSON.parse(localStorage.getItem('worldlive_logs') || '[]');
+
+    // 初回サンプル単語（空の場合のみ）
+    if (savedVocab.length === 0) {
+      savedVocab = [
+        { id: 1, lang: 'fr', word: 'Un café crème, s’il vous plaît.', meaning: 'カフェオレをひとつお願いします。', mastered: false },
+        { id: 2, lang: 'ko', word: '이거 얼마예요?', meaning: 'これいくらですか？', mastered: false },
+        { id: 3, lang: 'it', word: 'Che buono!', meaning: 'なんて美味しいんだ！', mastered: false }
+      ];
+      localStorage.setItem('worldlive_vocab', JSON.stringify(savedVocab));
+    }
+
+    window.onload = () => {
+      updateApiButtonState();
+      renderLanguageSelector();
+      initRoleplay();
+      renderVocabList();
+      renderHistoryList();
+    };
+
+    // ==========================================
+    // 3. UIヘルパー & APIキー管理
+    // ==========================================
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const icon = document.getElementById('toast-icon');
+      document.getElementById('toast-msg').textContent = msg;
+      icon.className = isError ? 'fa-solid fa-circle-exclamation text-rose-400' : 'fa-solid fa-circle-check text-emerald-400';
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function getApiKey() {
+      return localStorage.getItem('worldlive_gemini_key') || '';
+    }
+
+    function openApiModal() {
+      document.getElementById('api-key-input').value = getApiKey();
+      document.getElementById('api-modal').classList.remove('hidden');
+    }
+
+    function closeApiModal() {
+      document.getElementById('api-modal').classList.add('hidden');
+    }
+
+    function saveApiKey() {
+      const val = document.getElementById('api-key-input').value.trim();
+      localStorage.setItem('worldlive_gemini_key', val);
+      updateApiButtonState();
+      closeApiModal();
+      showToast(val ? 'APIキーを保存しました！' : 'APIキーをクリアしました');
+    }
+
+    function updateApiButtonState() {
+      const key = getApiKey();
+      const btn = document.getElementById('api-status-btn');
+      const text = document.getElementById('api-btn-text');
+      if (key) {
+        btn.className = 'px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 transition shadow-sm';
+        text.textContent = 'API接続済';
+      } else {
+        btn.className = 'px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 text-xs font-bold flex items-center gap-1.5 transition shadow-sm';
+        text.textContent = 'API設定';
+      }
+    }
+
+    function addStudyLog(type, title, detail) {
+      const log = {
+        id: Date.now(),
+        time: new Date().toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        langFlag: currentLang.flag,
+        langName: currentLang.name,
+        type,
+        title,
+        detail
+      };
+      studyLogs.unshift(log);
+      if (studyLogs.length > 50) studyLogs.pop();
+      localStorage.setItem('worldlive_logs', JSON.stringify(studyLogs));
+      renderHistoryList();
+    }
+
+    // ==========================================
+    // 4. タブ & 6言語切り替え
+    // ==========================================
+    function renderLanguageSelector() {
+      const container = document.getElementById('lang-selector');
+      container.innerHTML = LANGUAGES.map(lang => {
+        const active = lang.id === currentLang.id;
+        return `
+          <button onclick="selectLanguage('${lang.id}')"
+            class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+              active
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+            }">
+            <span class="text-base">${lang.flag}</span>
+            <span>${lang.name}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectLanguage(langId) {
+      currentLang = LANGUAGES.find(l => l.id === langId) || LANGUAGES[0];
+      currentScenarioIndex = 0;
+      renderLanguageSelector();
+      initRoleplay();
+      renderVocabList();
+      showToast(`${currentLang.flag} ${currentLang.name}モードに切り替えました`);
+    }
+
+    function switchTab(tabId) {
+      ['roleplay', 'camera', 'compare', 'vocab', 'history'].forEach(id => {
+        document.getElementById(`tab-${id}`).classList.add('hidden');
+        const nav = document.getElementById(`nav-${id}`);
+        if (nav) {
+          nav.classList.remove('text-indigo-600', 'font-bold');
+          nav.classList.add('text-slate-400', 'font-medium');
+        }
+      });
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.classList.remove('text-slate-400', 'font-medium');
+        activeNav.classList.add('text-indigo-600', 'font-bold');
+      }
+    }
+
+    // ==========================================
+    // 5. Gemini API 呼び出し共通関数
+    // ==========================================
+    async function callGemini(prompt, systemInstruction = '', imageBase64 = null, imageMime = 'image/jpeg', jsonMode = false) {
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        openApiModal();
+        throw new Error('先に右上のボタンからGemini APIキーを設定してください');
+      }
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+      const parts = [{ text: prompt }];
+      if (imageBase64) {
+        parts.push({
+          inlineData: { mimeType: imageMime, data: imageBase64 }
+        });
+      }
+
+      const payload = {
+        contents: [{ role: 'user', parts }],
+        ...(systemInstruction && { systemInstruction: { parts: [{ text: systemInstruction }] } }),
+        ...(jsonMode && { generationConfig: { responseMimeType: 'application/json' } })
+      };
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `APIエラー (${res.status})`);
+      }
+
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    }
+
+    // ==========================================
+    // 6. 音声読み上げ（TTS）＆ 音声認識（STT）
+    // ==========================================
+    function speakText(text, langCode = currentLang.speechCode) {
+      if (!('speechSynthesis' in window)) {
+        showToast('お使いのブラウザは音声読み上げに対応していません', true);
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = langCode;
+      utterance.rate = 0.92; // 学習しやすい少しゆっくりめの速度
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleVoiceInput(targetInputId, onResultCallback = null) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast('お使いのブラウザは音声認識に対応していません', true);
+        return;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.lang = currentLang.speechCode;
+      recognition.interimResults = false;
+
+      showToast(`${currentLang.name}で話しかけてください...`);
+      recognition.start();
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if (targetInputId) {
+          document.getElementById(targetInputId).value = transcript;
+        }
+        if (onResultCallback) {
+          onResultCallback(transcript);
+        }
+      };
+
+      recognition.onerror = () => {
+        showToast('音声をうまく聞き取れませんでした。もう一度お試しください', true);
+      };
+    }
+
+    // ==========================================
+    // 7. 機能1：リアル現地ロールプレイ
+    // ==========================================
+    function initRoleplay() {
+      const scene = currentLang.scenarios[currentScenarioIndex];
+      document.getElementById('rp-scene-title').textContent = `${currentLang.flag} ${scene.title}`;
+      document.getElementById('rp-scene-desc').textContent = scene.desc;
+      document.getElementById('rp-hints-container').classList.add('hidden');
+
+      chatHistory = [
+        { role: 'ai', text: scene.starter, ja: scene.starterJa, nuance: '現地の店員らしい自然でフレンドリーな第一声です。' }
+      ];
+      renderChatBox();
+    }
+
+    function startNewRoleplay() {
+      currentScenarioIndex = (currentScenarioIndex + 1) % currentLang.scenarios.length;
+      initRoleplay();
+      showToast('新しいシチュエーションに変更しました');
+    }
+
+    function renderChatBox() {
+      const box = document.getElementById('rp-chat-box');
+      box.innerHTML = chatHistory.map((msg, idx) => {
+        if (msg.role === 'ai') {
+          return `
+            <div class="flex flex-col items-start space-y-1 max-w-[88%]">
+              <div class="bg-slate-100 text-slate-900 rounded-2xl rounded-tl-xs p-3.5 shadow-2xs border border-slate-200/70">
+                <p class="text-sm font-semibold leading-relaxed">${escapeHtml(msg.text)}</p>
+                <p class="text-xs text-slate-500 mt-1 border-t border-slate-200 pt-1">${escapeHtml(msg.ja)}</p>
+                <div class="flex items-center gap-2 mt-2">
+                  <button onclick="speakText('${escapeQuotes(msg.text)}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                    <i class="fa-solid fa-volume-high"></i> 聞く
+                  </button>
+                  <button onclick="saveToVocab('${escapeQuotes(msg.text)}', '${escapeQuotes(msg.ja)}')" class="text-xs text-slate-600 hover:text-purple-700 font-medium flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                    <i class="fa-regular fa-bookmark"></i> 単語帳へ
+                  </button>
+                </div>
+              </div>
+              ${msg.nuance ? `<span class="text-[11px] text-indigo-600 px-1"><i class="fa-solid fa-sparkles mr-1"></i>${escapeHtml(msg.nuance)}</span>` : ''}
+            </div>
+          `;
+        } else {
+          return `
+            <div class="flex flex-col items-end">
+              <div class="bg-indigo-600 text-white rounded-2xl rounded-tr-xs px-4 py-2.5 max-w-[82%] shadow-xs">
+                <p class="text-sm">${escapeHtml(msg.text)}</p>
+              </div>
+              ${msg.feedback ? `<p class="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 mt-1 max-w-[85%]">💡 ${escapeHtml(msg.feedback)}</p>` : ''}
+            </div>
+          `;
+        }
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendRoleplayMessage() {
+      const input = document.getElementById('rp-input');
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      input.value = '';
+      chatHistory.push({ role: 'user', text: userText });
+      renderChatBox();
+
+      const btn = document.getElementById('rp-send-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+      const scene = currentLang.scenarios[currentScenarioIndex];
+      const sysPrompt = `あなたは${currentLang.city}に住む現地の店員・相手役です。シチュエーション：「${scene.title}」。
+ユーザーの入力（日本語でも現地語でも可）に対して、リアルな${currentLang.name}（現地の自然な表現や軽いスラング含む）で返答してください。
+必ず以下のJSON形式のみで出力してください：
+{
+  "reply": "相手役の${currentLang.name}のセリフ",
+  "replyJa": "セリフの自然な日本語訳",
+  "nuance": "使われている表現や現地文化のワンポイント解説（日本語で簡潔に）",
+  "userFeedback": "ユーザーの発言へのアドバイスや、より現地らしい言い換え提案（日本語で簡潔に）",
+  "nextHints": ["次にユーザーが返せそうな${currentLang.name}フレーズ1", "フレーズ2"]
+}`;
+
+      try {
+        const recentContext = chatHistory.slice(-4).map(m => `${m.role}: ${m.text}`).join('\n');
+        const raw = await callGemini(`会話履歴:\n${recentContext}\n\n最新の発言に対して返答を生成してください。`, sysPrompt, null, 'image/jpeg', true);
+        const res = JSON.parse(raw);
+
+        chatHistory[chatHistory.length - 1].feedback = res.userFeedback;
+        chatHistory.push({
+          role: 'ai',
+          text: res.reply,
+          ja: res.replyJa,
+          nuance: res.nuance
+        });
+        renderChatBox();
+        speakText(res.reply);
+
+        if (res.nextHints && res.nextHints.length > 0) {
+          const hintsBox = document.getElementById('rp-hints');
+          hintsBox.innerHTML = res.nextHints.map(h => `
+            <button onclick="document.getElementById('rp-input').value='${escapeQuotes(h)}'" class="text-xs bg-white hover:bg-indigo-50 text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 text-left transition">
+              ${escapeHtml(h)}
+            </button>
+          `).join('');
+          document.getElementById('rp-hints-container').classList.remove('hidden');
+        }
+
+        addStudyLog('ロールプレイ', scene.title, `「${userText}」と会話`);
+      } catch (e) {
+        showToast(e.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+      }
+    }
+
+    // ==========================================
+    // 8. 機能2：カメラ・日常の瞬間学習
+    // ==========================================
+    async function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const dataUrl = e.target.result;
+        const base64 = dataUrl.split(',')[1];
+
+        document.getElementById('camera-preview').src = dataUrl;
+        document.getElementById('camera-preview-box').classList.remove('hidden');
+        document.getElementById('camera-placeholder').classList.add('hidden');
+
+        const resultBox = document.getElementById('camera-result');
+        resultBox.classList.remove('hidden');
+        resultBox.innerHTML = `
+          <div class="p-6 text-center bg-slate-50 rounded-2xl border border-slate-200">
+            <i class="fa-solid fa-spinner fa-spin text-2xl text-emerald-600 mb-2"></i>
+            <p class="text-xs font-semibold text-slate-600">写真を分析して${currentLang.name}の教材を作成中...</p>
+          </div>
+        `;
+
+        const prompt = `この写真に写っているものを分析し、学習者が「今目の前にある日常」を${currentLang.name}で表現できるようになる教材を作ってください。
+以下のJSON形式のみで出力してください：
+{
+  "comment": "写真に対する${currentLang.name}でのリアクション一言",
+  "commentJa": "上記リアクションの日本語訳",
+  "items": [
+    { "word": "写っている物の${currentLang.name}表現", "meaning": "日本語の意味", "example": "それを使った短い例文（${currentLang.name}）" }
+  ],
+  "quiz": {
+    "question": "この写真に関する${currentLang.name}のミニクイズ（日本語で出題）",
+    "options": ["選択肢1（${currentLang.name}）", "選択肢2（${currentLang.name}）", "選択肢3（${currentLang.name}）"],
+    "answerIndex": 0,
+    "explanation": "正解の解説（日本語）"
+  }
+}`;
+
+        try {
+          const raw = await callGemini(prompt, '', base64, file.type || 'image/jpeg', true);
+          const data = JSON.parse(raw);
+
+          resultBox.innerHTML = `
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-4">
+              <div class="bg-emerald-50 rounded-xl p-3">
+                <p class="text-sm font-bold text-emerald-950">${escapeHtml(data.comment)}</p>
+                <p class="text-xs text-emerald-700 mt-0.5">${escapeHtml(data.commentJa)}</p>
+                <button onclick="speakText('${escapeQuotes(data.comment)}')" class="mt-2 text-xs bg-white text-emerald-700 font-bold px-2.5 py-1 rounded-lg border border-emerald-200">
+                  <i class="fa-solid fa-volume-high mr-1"></i>音声を聞く
+                </button>
+              </div>
+
+              <div>
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">写真から学べる単語・フレーズ</h3>
+                <div class="space-y-2">
+                  ${data.items.map(item => `
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2">
+                      <div>
+                        <p class="text-sm font-bold text-slate-900">${escapeHtml(item.word)} <span class="text-xs font-normal text-slate-500">(${escapeHtml(item.meaning)})</span></p>
+                        <p class="text-xs text-slate-600 mt-0.5">${escapeHtml(item.example)}</p>
+                      </div>
+                      <div class="flex gap-1 shrink-0">
+                        <button onclick="speakText('${escapeQuotes(item.word)}')" class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-indigo-600"><i class="fa-solid fa-volume-high"></i></button>
+                        <button onclick="saveToVocab('${escapeQuotes(item.word)}', '${escapeQuotes(item.meaning)}')" class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-purple-600"><i class="fa-regular fa-bookmark"></i></button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3">
+                <span class="text-[11px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">ミニクイズ</span>
+                <p class="text-sm font-bold text-slate-900 mt-1.5">${escapeHtml(data.quiz.question)}</p>
+                <div class="mt-2 space-y-1.5" id="quiz-options">
+                  ${data.quiz.options.map((opt, idx) => `
+                    <button onclick="checkPhotoQuiz(${idx}, ${data.quiz.answerIndex}, '${escapeQuotes(data.quiz.explanation)}')" class="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold transition">
+                      ${escapeHtml(opt)}
+                    </button>
+                  `).join('')}
+                </div>
+                <p id="quiz-feedback" class="hidden mt-2 text-xs p-2.5 rounded-xl font-medium"></p>
+              </div>
+            </div>
+          `;
+          addStudyLog('カメラ学習', `${currentLang.name}で写真分析`, data.commentJa);
+        } catch (err) {
+          resultBox.innerHTML = `<p class="text-xs text-rose-600 p-3 bg-rose-50 rounded-xl">${escapeHtml(err.message)}</p>`;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function checkPhotoQuiz(selected, correct, explanation) {
+      const fb = document.getElementById('quiz-feedback');
+      fb.classList.remove('hidden');
+      if (selected === correct) {
+        fb.className = 'mt-2 text-xs p-3 rounded-xl font-medium bg-emerald-50 text-emerald-800 border border-emerald-200';
+        fb.innerHTML = `🎉 正解！ ${escapeHtml(explanation)}`;
+      } else {
+        fb.className = 'mt-2 text-xs p-3 rounded-xl font-medium bg-rose-50 text-rose-800 border border-rose-200';
+        fb.innerHTML = `惜しい！正解は ${correct + 1}番目です。 ${escapeHtml(explanation)}`;
+      }
+    }
+
+    // ==========================================
+    // 9. 機能3：6言語の文化・日常比較ストーリー
+    // ==========================================
+    async function generateComparison(theme) {
+      const loading = document.getElementById('compare-loading');
+      const list = document.getElementById('compare-list');
+      loading.classList.remove('hidden');
+      list.innerHTML = '';
+
+      const prompt = `テーマ「${theme}」について、フランス語(fr)、イタリア語(it)、中国語(zh)、韓国語(ko)、スペイン語(es)、英語(en)の6言語それぞれの国・地域のリアルな文化や生活習慣が伝わるショートストーリー（各2〜3文）を作成してください。
+必ず以下のJSON配列形式のみで出力してください：
+[
+  {
+    "langId": "fr",
+    "story": "現地語のショートストーリー",
+    "ja": "自然な日本語訳",
+    "cultureNote": "その国ならではの文化豆知識（1文）"
+  }
+]`;
+
+      try {
+        const raw = await callGemini(prompt, '', null, 'image/jpeg', true);
+        const items = JSON.parse(raw);
+
+        list.innerHTML = items.map(item => {
+          const langObj = LANGUAGES.find(l => l.id === item.langId) || LANGUAGES[0];
+          return `
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">${langObj.flag}</span>
+                  <span class="font-bold text-sm text-slate-900">${langObj.name}</span>
+                  <span class="text-[11px] text-slate-400">(${langObj.city})</span>
+                </div>
+                <button onclick="speakText('${escapeQuotes(item.story)}', '${langObj.speechCode}')" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold flex items-center gap-1.5 transition">
+                  <i class="fa-solid fa-volume-high"></i> 聞き比べ
+                </button>
+              </div>
+              <p class="text-sm font-semibold text-slate-800 leading-relaxed">${escapeHtml(item.story)}</p>
+              <p class="text-xs text-slate-500">${escapeHtml(item.ja)}</p>
+              <div class="bg-slate-50 rounded-xl p-2.5 text-[11px] text-slate-600 border border-slate-100">
+                <i class="fa-solid fa-earth-americas text-amber-500 mr-1"></i>${escapeHtml(item.cultureNote)}
+              </div>
+            </div>
+          `;
+        }).join('');
+        addStudyLog('6言語比較', theme, '6カ国の文化ストーリーを学習');
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        loading.classList.add('hidden');
+      }
+    }
+
+    // ==========================================
+    // 10. 機能4：単語帳＆発音チェック
+    // ==========================================
+    function saveToVocab(word, meaning) {
+      if (savedVocab.some(v => v.word === word && v.lang === currentLang.id)) {
+        showToast('すでに単語帳に登録されています');
+        return;
+      }
+      savedVocab.unshift({
+        id: Date.now(),
+        lang: currentLang.id,
+        word,
+        meaning,
+        mastered: false
+      });
+      localStorage.setItem('worldlive_vocab', JSON.stringify(savedVocab));
+      renderVocabList();
+      showToast('単語帳に保存しました！');
+    }
+
+    function addManualVocab() {
+      const wInput = document.getElementById('new-vocab-word');
+      const mInput = document.getElementById('new-vocab-meaning');
+      const word = wInput.value.trim();
+      const meaning = mInput.value.trim();
+      if (!word || !meaning) {
+        showToast('単語と意味の両方を入力してください', true);
+        return;
+      }
+      saveToVocab(word, meaning);
+      wInput.value = '';
+      mInput.value = '';
+    }
+
+    async function generateSuggestedVocab() {
+      showToast(`${currentLang.name}の実用フレーズを生成中...`);
+      const prompt = `${currentLang.name}圏を旅するときに現地人がよく使う、教科書にはあまり載っていないリアルで便利なフレーズを3つ教えてください。
+JSON配列形式のみで出力：[{"word": "現地語フレーズ", "meaning": "日本語の意味"}]`;
+      try {
+        const raw = await callGemini(prompt, '', null, 'image/jpeg', true);
+        const list = JSON.parse(raw);
+        list.forEach(item => {
+          savedVocab.unshift({
+            id: Date.now() + Math.random(),
+            lang: currentLang.id,
+            word: item.word,
+            meaning: item.meaning,
+            mastered: false
+          });
+        });
+        localStorage.setItem('worldlive_vocab', JSON.stringify(savedVocab));
+        renderVocabList();
+        showToast('新しい実用フレーズを3つ追加しました！');
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function renderVocabList() {
+      const container = document.getElementById('vocab-list');
+      const filtered = savedVocab.filter(v => v.lang === currentLang.id);
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-8">${currentLang.name}の単語はまだ登録されていません。<br>「単語を追加」ボタンか会話から保存できます！</p>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(v => `
+        <div class="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-2xs space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="text-sm font-bold text-slate-900">${escapeHtml(v.word)}</p>
+              <p class="text-xs text-slate-500 mt-0.5">${escapeHtml(v.meaning)}</p>
+            </div>
+            <button onclick="deleteVocab(${v.id})" class="text-slate-300 hover:text-rose-500 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <button onclick="speakText('${escapeQuotes(v.word)}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-volume-high"></i> お手本
+            </button>
+            <button onclick="practicePronunciation(${v.id}, '${escapeQuotes(v.word)}')" class="px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold flex items-center gap-1">
+              <i class="fa-solid fa-microphone"></i> 発音テスト
+            </button>
+          </div>
+          <div id="pronounce-res-${v.id}" class="hidden text-xs p-2 rounded-xl bg-slate-50"></div>
+        </div>
+      `).join('');
+    }
+
+    function practicePronunciation(id, targetWord) {
+      toggleVoiceInput(null, (spoken) => {
+        const resBox = document.getElementById(`pronounce-res-${id}`);
+        resBox.classList.remove('hidden');
+
+        // 記号や大文字小文字を正規化して簡易判定
+        const clean = str => str.toLowerCase().replace(/[.,!?¿¡'’"「」。、！？\s]/g, '');
+        const isMatch = clean(spoken).includes(clean(targetWord)) || clean(targetWord).includes(clean(spoken));
+
+        if (isMatch) {
+          resBox.className = 'text-xs p-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium';
+          resBox.innerHTML = `✨ 素晴らしい発音です！認識結果: 「${escapeHtml(spoken)}」`;
+          addStudyLog('発音練習', targetWord, '発音チェッククリア');
+        } else {
+          resBox.className = 'text-xs p-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-medium';
+          resBox.innerHTML = `🎤 聞き取り結果: 「${escapeHtml(spoken)}」<br><span class="text-[11px] opacity-80">お手本をもう一度聞いて挑戦してみましょう！</span>`;
+        }
+      });
+    }
+
+    function deleteVocab(id) {
+      savedVocab = savedVocab.filter(v => v.id !== id);
+      localStorage.setItem('worldlive_vocab', JSON.stringify(savedVocab));
+      renderVocabList();
+    }
+
+    // ==========================================
+    // 11. 学習履歴表示
+    // ==========================================
+    function renderHistoryList() {
+      const container = document.getElementById('history-list');
+      if (studyLogs.length === 0) {
+        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10">まだ学習履歴がありません。会話や写真学習を始めるとここに記録されます！</p>`;
+        return;
+      }
+      container.innerHTML = studyLogs.map(log => `
+        <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">${log.langFlag}</span>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">${escapeHtml(log.type)}</span>
+                <span class="text-xs font-bold text-slate-800">${escapeHtml(log.title)}</span>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(log.detail)}</p>
+            </div>
+          </div>
+          <span class="text-[10px] text-slate-400 shrink-0">${escapeHtml(log.time)}</span>
+        </div>
+      `).join('');
+    }
+
+    function clearHistory() {
+      studyLogs = [];
+      localStorage.removeItem('worldlive_logs');
+      renderHistoryList();
+      showToast('学習履歴をクリアしました');
+    }
+
+    // ==========================================
+    // 12. セキュリティ用エスケープ処理
+    // ==========================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function escapeQuotes(str) {
+      if (!str) return '';
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
