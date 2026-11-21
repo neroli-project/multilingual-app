@@ -269,6 +269,237 @@
 
   <script>
     // ==========================================
+    // 1. 6言語データ定義とシチュエーション設定
+    // ==========================================
+    const LANGUAGES = [
+      {
+        id: 'fr', name: 'フランス語', flag: '🇫🇷', city: 'パリ', speechCode: 'fr-FR',
+        scenarios: [
+          { title: 'パリの街角カフェで朝ごはんを注文', desc: '少し気さくな店員と会話しながら、クロワッサンとカフェオレを頼んでみましょう。', starter: 'Bonjour ! Bienvenue chez Café de Flore. Qu’est-ce que je vous sers ce matin ?', starterJa: 'おはようございます！カフェ・ド・フロールへようこそ。今朝は何になさいますか？' },
+          { title: 'マルシェ（朝市）でチーズと果物を買う', desc: '地元のマルシェでおすすめのチーズを尋ねて買ってみましょう。', starter: 'Bonjour ! Vous cherchez quelque chose de spécial aujourd’hui ?', starterJa: 'こんにちは！今日は何か特別なものをお探しですか？' }
+        ]
+      },
+      {
+        id: 'it', name: 'イタリア語', flag: '🇮🇹', city: 'ローマ', speechCode: 'it-IT',
+        scenarios: [
+          { title: 'ローマのバールでエスプレッソを立ち飲み', desc: '朝の活気あるバールでバリスタと挨拶して注文しましょう。', starter: 'Buongiorno! Un caffè al banco o preferisci sederti?', starterJa: 'おはよう！カウンターでエスプレッソにする？それとも座っていく？' },
+          { title: 'テルミニ駅で電車のホームを尋ねる', desc: 'フィレンツェ行きの電車が何番線から出るか駅員に聞いてみましょう。', starter: 'Ciao! Hai bisogno di aiuto con i binari?', starterJa: 'チャオ！ホームの案内が必要ですか？' }
+        ]
+      },
+      {
+        id: 'zh', name: '中国語', flag: '🇨🇳', city: '台北・上海', speechCode: 'zh-CN',
+        scenarios: [
+          { title: 'ローカル食堂で小籠包と麺を注文', desc: '活気ある地元の食堂でおすすめメニューを聞いて注文してみましょう。', starter: '你好！欢迎光临，几位？想吃点什么？', starterJa: 'こんにちは！いらっしゃいませ、何名様ですか？何を食べたいですか？' },
+          { title: '夜市でタピオカミルクティーをカスタマイズ', desc: '甘さや氷の量を指定してドリンクを頼んでみましょう。', starter: '帅哥/美女，要喝点什么？甜度和冰块怎么调？', starterJa: 'お兄さん/お姉さん、飲み物は何にしますか？甘さと氷はどうしますか？' }
+        ]
+      },
+      {
+        id: 'ko', name: '韓国語', flag: '🇰🇷', city: 'ソウル', speechCode: 'ko-KR',
+        scenarios: [
+          { title: 'ソウルの屋台（ポジャンマチャ）でトッポッキ', desc: '気さくな屋台のおばちゃんと会話しながら熱々の屋台グルメを注文！', starter: '어서 오세요! 떡볶이랑 어묵 막 나왔어요. 뭐 드릴까요?', starterJa: 'いらっしゃい！トッポッキとおでんができたてだよ。何にしようか？' },
+          { title: '聖水（ソンス）のおしゃれカフェで注文', desc: '人気のカフェで席を確保してアイスアメリカーノを頼んでみましょう。', starter: '안녕하세요! 드시고 가시나요, 포장해 드릴까요?', starterJa: 'こんにちは！店内でお召し上がりですか、テイクアウトにしますか？' }
+        ]
+      },
+      {
+        id: 'es', name: 'スペイン語', flag: '🇪🇸', city: 'バルセロナ', speechCode: 'es-ES',
+        scenarios: [
+          { title: 'バルセロナのバルでタパスと飲み物を注文', desc: '陽気な店員におすすめのタパスを聞いて乾杯しましょう。', starter: '¡Hola! ¿Qué tal? ¿Qué te pongo de beber para empezar?', starterJa: 'やあ！調子はどう？まずは飲み物は何にしようか？' },
+          { title: '地元の雑貨屋でお土産選び', desc: '友人へのお土産を探していることを伝えて相談してみましょう。', starter: '¡Buenas! Si buscas un recuerdo bonito, dime y te ayudo.', starterJa: 'いらっしゃい！素敵なお土産を探してるなら声をかけてね。' }
+        ]
+      },
+      {
+        id: 'en', name: '英語', flag: '🇺🇸', city: 'ニューヨーク', speechCode: 'en-US',
+        scenarios: [
+          { title: 'NYのダイナーでブランチを注文', desc: 'フレンドリーなサーバーとスモールトークしながらパンケーキとコーヒーを注文。', starter: 'Hey there! Welcome in. How’s your morning going so far?', starterJa: 'やあ、いらっしゃい！今朝はここまでどんな感じ？' },
+          { title: 'ブルックリンの古着屋で店員と会話', desc: 'ジャケットのサイズ感やおすすめを聞いてみましょう。', starter: 'Let me know if you want to try anything on! We just got some cool vintage pieces in.', starterJa: '試着したいものがあったら教えてね！ちょうどクールなヴィンテージが入荷したんだ。' }
+        ]
+      }
+    ];
+
+    // ==========================================
+    // 2. アプリ状態管理 & 初期化
+    // ==========================================
+    let currentLang = LANGUAGES[0];
+    let currentScenarioIndex = 0;
+    let chatHistory = [];
+    let savedVocab = JSON.parse(localStorage.getItem('worldlive_vocab') || '[]');
+    let studyLogs = JSON.parse(localStorage.getItem('worldlive_logs') || '[]');
+
+    window.onload = () => {
+      updateApiButtonUI();
+      renderLangSelector();
+      initRoleplay();
+      renderVocabList();
+      renderHistoryList();
+    };
+
+    // ==========================================
+    // 3. トースト通知 & APIキーモーダル制御
+    // ==========================================
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const icon = document.getElementById('toast-icon');
+      const text = document.getElementById('toast-msg');
+      text.textContent = msg;
+      icon.className = isError ? 'fa-solid fa-circle-exclamation text-rose-400' : 'fa-solid fa-circle-check text-emerald-400';
+      toast.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
+    }
+
+    function openApiModal() {
+      const savedKey = localStorage.getItem('worldlive_gemini_key') || '';
+      document.getElementById('api-key-input').value = savedKey;
+      document.getElementById('api-modal').classList.remove('hidden');
+    }
+
+    function closeApiModal() {
+      document.getElementById('api-modal').classList.add('hidden');
+    }
+
+    function saveApiKey() {
+      const val = document.getElementById('api-key-input').value.trim();
+      if (val) {
+        localStorage.setItem('worldlive_gemini_key', val);
+        showToast('Gemini APIキーを保存しました！');
+      } else {
+        localStorage.removeItem('worldlive_gemini_key');
+        showToast('APIキーを削除しました');
+      }
+      updateApiButtonUI();
+      closeApiModal();
+    }
+
+    function getApiKey() {
+      return localStorage.getItem('worldlive_gemini_key') || '';
+    }
+
+    function updateApiButtonUI() {
+      const key = getApiKey();
+      const btn = document.getElementById('api-status-btn');
+      const txt = document.getElementById('api-btn-text');
+      if (key) {
+        btn.className = 'px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 transition shadow-sm';
+        txt.textContent = 'API接続済';
+      } else {
+        btn.className = 'px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 text-xs font-bold flex items-center gap-1.5 transition shadow-sm';
+        txt.textContent = 'API設定';
+      }
+    }
+
+    // ==========================================
+    // 4. タブ切り替え & 言語セレクター
+    // ==========================================
+    function switchTab(tabName) {
+      ['roleplay', 'camera', 'compare', 'vocab', 'history'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        const navBtn = document.getElementById(`nav-${t}`);
+        if (navBtn) {
+          navBtn.classList.remove('text-indigo-600', 'font-bold');
+          navBtn.classList.add('text-slate-400', 'font-medium');
+        }
+      });
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabName}`);
+      if (activeNav) {
+        activeNav.classList.remove('text-slate-400', 'font-medium');
+        activeNav.classList.add('text-indigo-600', 'font-bold');
+      }
+      if (tabName === 'history') renderHistoryList();
+      if (tabName === 'vocab') renderVocabList();
+    }
+
+    function renderLangSelector() {
+      const container = document.getElementById('lang-selector');
+      container.innerHTML = LANGUAGES.map(lang => {
+        const active = lang.id === currentLang.id;
+        return `
+          <button onclick="selectLanguage('${lang.id}')" class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+            active
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+          }">
+            <span class="text-base">${lang.flag}</span>
+            <span>${lang.name}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectLanguage(langId) {
+      currentLang = LANGUAGES.find(l => l.id === langId) || LANGUAGES[0];
+      currentScenarioIndex = 0;
+      renderLangSelector();
+      initRoleplay();
+      renderVocabList();
+      showToast(`${currentLang.flag} ${currentLang.name}（${currentLang.city}）に切り替えました`);
+    }
+
+    function addStudyLog(type, title, detail) {
+      studyLogs.unshift({
+        id: Date.now(),
+        type,
+        langFlag: currentLang.flag,
+        langName: currentLang.name,
+        title,
+        detail,
+        time: new Date().toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      });
+      if (studyLogs.length > 50) studyLogs.pop();
+      localStorage.setItem('worldlive_logs', JSON.stringify(studyLogs));
+    }
+
+    // ==========================================
+    // 5. Gemini API 通信ヘルパー
+    // ==========================================
+    async function callGemini(promptText, systemInstruction = '', imageBase64 = null, imageMime = 'image/jpeg', jsonMode = false) {
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        openApiModal();
+        throw new Error('先に右上の「API設定」からGemini APIキーを入力してください。');
+      }
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const parts = [{ text: promptText }];
+      if (imageBase64) {
+        parts.push({
+          inlineData: {
+            mimeType: imageMime,
+            data: imageBase64
+          }
+        });
+      }
+
+      const payload = {
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          temperature: 0.7
+        }
+      };
+
+      if (systemInstruction) {
+        payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+      }
+      if (jsonMode) {
+        payload.generationConfig.responseMimeType = 'application/json';
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `APIエラー (${response.status})`);
+      }
+
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    }
+
+    // ==========================================
     // 6. 音声読み上げ（Gemini TTS + ブラウザフォールバック）＆ 音声認識（STT）
     // ==========================================
     const audioCache = new Map();
