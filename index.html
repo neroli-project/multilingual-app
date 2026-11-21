@@ -83,17 +83,36 @@
     <!-- 1. 現地ロールプレイモード -->
     <section id="tab-roleplay" class="space-y-4 animate-fade-in">
       <!-- シチュエーション選択カード -->
-      <div class="bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 rounded-2xl p-4">
-        <div class="flex items-center justify-between mb-2">
+      <div class="bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 rounded-2xl p-4 space-y-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-white px-2.5 py-1 rounded-full shadow-xs">
             <i class="fa-solid fa-location-dot mr-1"></i>現地シチュエーション
           </span>
-          <button onclick="startNewRoleplay()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-indigo-100 shadow-xs">
-            <i class="fa-solid fa-rotate"></i> シーン変更
+          <div class="flex items-center gap-1.5">
+            <button onclick="generateAiScenario()" id="ai-scene-btn" class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg shadow-xs transition">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> AI新シーン
+            </button>
+            <button onclick="toggleCustomSceneInput()" class="text-xs font-semibold text-indigo-700 hover:bg-indigo-100/70 flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-lg border border-indigo-200 shadow-xs transition">
+              <i class="fa-solid fa-pen"></i> 自由設定
+            </button>
+            <button onclick="startNewRoleplay()" class="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-xs transition" title="定番シーンを切り替え">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- カスタムシーン自由入力フォーム（折りたたみ式） -->
+        <div id="custom-scene-box" class="hidden pt-1 flex gap-1.5">
+          <input id="custom-scene-input" type="text" placeholder="例：深夜のタクシーで運転手と話す、薬局で風邪薬を買う..." class="flex-1 min-w-0 bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500" onkeypress="if(event.key==='Enter') generateAiScenario(true)">
+          <button onclick="generateAiScenario(true)" class="shrink-0 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition">
+            開始
           </button>
         </div>
-        <h2 id="rp-scene-title" class="font-bold text-slate-900 text-base">パリの街角カフェで朝ごはんを注文</h2>
-        <p id="rp-scene-desc" class="text-xs text-slate-600 mt-1">少し気さくな店員と会話しながら、クロワッサンとカフェオレを頼んでみましょう。</p>
+
+        <div>
+          <h2 id="rp-scene-title" class="font-bold text-slate-900 text-base">パリの街角カフェで朝ごはんを注文</h2>
+          <p id="rp-scene-desc" class="text-xs text-slate-600 mt-1">少し気さくな店員と会話しながら、クロワッサンとカフェオレを頼んでみましょう。</p>
+        </div>
       </div>
 
       <!-- チャットログ -->
@@ -192,9 +211,22 @@
         </button>
       </div>
 
+      <!-- 日本語からAI変換して登録フォーム -->
+      <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-3.5 space-y-2">
+        <label class="block text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+          <i class="fa-solid fa-language text-indigo-600"></i>日本語から現地語に変換して登録
+        </label>
+        <div class="flex gap-2">
+          <input id="jp-translate-input" type="text" placeholder="例：お会計お願いします、これいくらですか？" class="flex-1 min-w-0 bg-white border border-indigo-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" onkeypress="if(event.key==='Enter') translateAndAddVocab()">
+          <button onclick="translateAndAddVocab()" id="jp-translate-btn" class="shrink-0 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs active:scale-95 transition flex items-center gap-1">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> 変換＆登録
+          </button>
+        </div>
+      </div>
+
       <!-- 手動単語追加フォーム -->
       <div class="flex flex-col sm:flex-row gap-2">
-        <input id="new-vocab-word" type="text" placeholder="現地語の単語・フレーズ" class="w-full sm:flex-1 bg-slate-100 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500">
+        <input id="new-vocab-word" type="text" placeholder="現地語の単語・フレーズ（直接入力）" class="w-full sm:flex-1 bg-slate-100 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500">
         <div class="flex gap-2 w-full sm:flex-1">
           <input id="new-vocab-meaning" type="text" placeholder="日本語の意味" class="flex-1 min-w-0 bg-slate-100 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500">
           <button onclick="addManualVocab()" class="shrink-0 px-4 py-2.5 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-700 active:scale-95 transition">登録</button>
@@ -321,6 +353,7 @@
     // ==========================================
     let currentLang = LANGUAGES[0];
     let currentScenarioIndex = 0;
+    let activeScenario = null; // AI生成・カスタム設定された現在のシナリオを保持
     let chatHistory = [];
     let savedVocab = JSON.parse(localStorage.getItem('worldlive_vocab') || '[]');
     let studyLogs = JSON.parse(localStorage.getItem('worldlive_logs') || '[]');
@@ -642,14 +675,14 @@
     // ==========================================
     // 7. 機能1：リアル現地ロールプレイ
     // ==========================================
-    function initRoleplay() {
-      const scene = currentLang.scenarios[currentScenarioIndex];
-      document.getElementById('rp-scene-title').textContent = `${currentLang.flag} ${scene.title}`;
-      document.getElementById('rp-scene-desc').textContent = scene.desc;
+    function initRoleplay(customScene = null) {
+      activeScenario = customScene || currentLang.scenarios[currentScenarioIndex];
+      document.getElementById('rp-scene-title').textContent = `${currentLang.flag} ${activeScenario.title}`;
+      document.getElementById('rp-scene-desc').textContent = activeScenario.desc;
       document.getElementById('rp-hints-container').classList.add('hidden');
 
       chatHistory = [
-        { role: 'ai', text: scene.starter, ja: scene.starterJa, nuance: '現地の店員らしい自然でフレンドリーな第一声です。' }
+        { role: 'ai', text: activeScenario.starter, ja: activeScenario.starterJa, nuance: activeScenario.nuance || '現地の店員らしい自然でフレンドリーな第一声です。' }
       ];
       renderChatBox();
     }
@@ -657,7 +690,75 @@
     function startNewRoleplay() {
       currentScenarioIndex = (currentScenarioIndex + 1) % currentLang.scenarios.length;
       initRoleplay();
-      showToast('新しいシチュエーションに変更しました');
+      showToast('定番シチュエーションを切り替えました');
+    }
+
+    function toggleCustomSceneInput() {
+      const box = document.getElementById('custom-scene-box');
+      box.classList.toggle('hidden');
+      if (!box.classList.contains('hidden')) {
+        document.getElementById('custom-scene-input').focus();
+      }
+    }
+
+    async function generateAiScenario(isCustom = false) {
+      const customInput = document.getElementById('custom-scene-input');
+      const customTheme = isCustom ? customInput.value.trim() : '';
+
+      if (isCustom && !customTheme) {
+        showToast('練習したいシチュエーションを入力してください', true);
+        return;
+      }
+
+      const btn = document.getElementById('ai-scene-btn');
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 生成中...';
+
+      const themeInstruction = isCustom
+        ? `ユーザー指定のシチュエーション「${customTheme}」を舞台にしてください。`
+        : `${currentLang.city}（${currentLang.name}圏）ならではの日常的・旅行中に遭遇するリアルで面白いシチュエーションを1つ新しく考案してください（例：パン屋、薬局、駅、古着屋、美術館、屋台、近所の住民との世間話など、毎回バリエーション豊かに）。`;
+
+      const prompt = `${themeInstruction}
+必ず以下のJSON形式のみで出力してください：
+{
+  "title": "シチュエーションのタイトル（日本語で簡潔に）",
+  "desc": "どんな場面で、ユーザーは何をすればよいかの説明（日本語で1〜2文）",
+  "starter": "相手役（現地の店員や住民など）が最初に話しかけてくる${currentLang.name}のリアルなセリフ",
+  "starterJa": "上記セリフの自然な日本語訳",
+  "nuance": "最初の一言に使われている表現や現地の空気感のワンポイント解説（日本語）",
+  "initialHints": ["ユーザーが最初に返せそうな${currentLang.name}フレーズ1", "フレーズ2"]
+}`;
+
+      try {
+        const raw = await callGemini(prompt, '', null, 'image/jpeg', true);
+        const newScene = JSON.parse(raw);
+
+        initRoleplay(newScene);
+        if (isCustom) {
+          customInput.value = '';
+          document.getElementById('custom-scene-box').classList.add('hidden');
+        }
+
+        // 最初の返信ヒントもセット
+        if (newScene.initialHints && newScene.initialHints.length > 0) {
+          const hintsBox = document.getElementById('rp-hints');
+          hintsBox.innerHTML = newScene.initialHints.map(h => `
+            <button onclick="document.getElementById('rp-input').value='${escapeQuotes(h)}'" class="text-xs bg-white hover:bg-indigo-50 text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 text-left transition">
+              ${escapeHtml(h)}
+            </button>
+          `).join('');
+          document.getElementById('rp-hints-container').classList.remove('hidden');
+        }
+
+        speakText(newScene.starter);
+        showToast('新しい現地シチュエーションを作成しました！');
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
     }
 
     function renderChatBox() {
@@ -708,8 +809,8 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-      const scene = currentLang.scenarios[currentScenarioIndex];
-      const sysPrompt = `あなたは${currentLang.city}に住む現地の店員・相手役です。シチュエーション：「${scene.title}」。
+      const scene = activeScenario || currentLang.scenarios[currentScenarioIndex];
+      const sysPrompt = `あなたは${currentLang.city}に住む現地の店員・相手役です。シチュエーション：「${scene.title}」（${scene.desc}）。
 ユーザーの入力（日本語でも現地語でも可）に対して、リアルな${currentLang.name}（現地の自然な表現や軽いスラング含む）で返答してください。
 必ず以下のJSON形式のみで出力してください：
 {
@@ -947,6 +1048,43 @@
       saveToVocab(word, meaning);
       wInput.value = '';
       mInput.value = '';
+    }
+
+    async function translateAndAddVocab() {
+      const input = document.getElementById('jp-translate-input');
+      const jpText = input.value.trim();
+      if (!jpText) {
+        showToast('変換したい日本語を入力してください', true);
+        return;
+      }
+
+      const btn = document.getElementById('jp-translate-btn');
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 変換中...';
+
+      const prompt = `日本語の単語・フレーズ「${jpText}」を、現地（${currentLang.city}・${currentLang.name}圏）でネイティブが日常的に使う自然な${currentLang.name}に翻訳してください。
+必ず以下のJSON形式のみで出力してください：
+{
+  "word": "自然な${currentLang.name}の単語またはフレーズ",
+  "meaning": "${jpText}"
+}`;
+
+      try {
+        const raw = await callGemini(prompt, '', null, 'image/jpeg', true);
+        const res = JSON.parse(raw);
+        if (res.word) {
+          saveToVocab(res.word, res.meaning || jpText);
+          input.value = '';
+          // 登録直後にそのままネイティブ発音をお手本再生
+          speakText(res.word);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
     }
 
     async function generateSuggestedVocab() {
